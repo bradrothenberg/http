@@ -134,38 +134,53 @@ pplx::task<void> UploadFileToHttpServerAsync()
 int _tmain(int argc, _TCHAR* argv[])
 {
 
-	http_client client(L"https://private-anon-575155ce3-sparkauthentication.apiary-proxy.com/api/v1/oauth/accesstoken");
-	// Manually build up an HTTP request with header and request URI.
-	http_request request(methods::POST);
-	request.headers().add(L"Content-Type", L"application/x-www-form-urlencoded");
-	request.headers().add(L"Authorization", L"Basic [WnByQWE3UDA1V01MWmFMNG53WFd0dU1FNlZldkIyN3Y6SUFaWFN6MWtIRnhWUzVWUA==]");
+	auto fileStream = std::make_shared<ostream>();
 
-	request.set_body("grant_type=client_credentials");
-
-	
-	client.request(request).then([](http_response response)
+	// Open stream to output file.
+	pplx::task<void> requestTask = fstream::open_ostream(U("results.txt")).then([=](ostream outFile)
 	{
+		*fileStream = outFile;
 
-		auto r = response.extract_json();
+		// Create http_client to send the request.
 
-		auto bodyStream = response.body();
+		http_client client(L"https://private-anon-575155ce3-sparkauthentication.apiary-proxy.com/api/v1/oauth/accesstoken");
+		// Manually build up an HTTP request with header and request URI.
+		http_request request(methods::POST);
+		request.headers().add(L"Content-Type", L"application/x-www-form-urlencoded");
+		request.headers().add(L"Authorization", L"Basic [WnByQWE3UDA1V01MWmFMNG53WFd0dU1FNlZldkIyN3Y6SUFaWFN6MWtIRnhWUzVWUA==]");
+
+		request.set_body("grant_type=client_credentials");
 
 
-	
-		auto fileStream = std::make_shared<ostream>();
+		return client.request(request);
+	})
 
-		fstream::open_ostream(U("results.txt")).then([=](ostream outFile) {
-			*fileStream = outFile;
-			response.body().read_to_end(fileStream->streambuf());
-		});
+		// Handle response headers arriving.
+		.then([=](http_response response)
+	{
+		printf("Received response status code:%u\n", response.status_code());
 
-		
+		// Write response body into the file.
+		return response.body().read_to_end(fileStream->streambuf());
+	})
 
-		// Print the status code.
-		std::wostringstream ss;
-		ss << L"Server returned returned status code " << response.status_code() << L"." << std::endl;
-		std::wcout << ss.str();
+		// Close the file stream.
+		.then([=](size_t)
+	{
+		return fileStream->close();
 	});
+
+	// Wait for all the outstanding I/O to complete and handle any exceptions
+	try
+	{
+		requestTask.wait();
+	}
+	catch (const std::exception &e)
+	{
+		printf("Error exception:%s\n", e.what());
+	}
+
+
 
 
 
