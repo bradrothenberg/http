@@ -21,6 +21,7 @@ using namespace utility;                    // Common utilities like string conv
 using namespace web;                        // Common features like URIs.
 using namespace concurrency::streams;       // Asynchronous streams
 
+//using namespace std;
 
 // Creates an HTTP request and prints the length of the response stream.
 pplx::task<void> HTTPStreamingAsync()
@@ -162,6 +163,13 @@ pplx::task<void> RequestJSONValueAsync()
 		try
 		{
 			const json::value& v = previousTask.get();
+		
+			std::string string;
+		//auto arrayJ = 	v.as_array();
+
+
+		std::cout <<"print"<< std::endl;
+	
 			// Perform actions here to process the JSON value...
 		}
 		catch (const http_exception& e)
@@ -210,6 +218,12 @@ void IterateJSONValue(const json::value& objIn)
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	std::wcout << L"Calling RequestJSONValueAsync..." << std::endl;
+	RequestJSONValueAsync().wait();
+
+	std::wcout << L"Calling IterateJSONValue..." << std::endl;
+	//IterateJSONValue();
+
 
 	auto fileStream = std::make_shared<ostream>();
 
